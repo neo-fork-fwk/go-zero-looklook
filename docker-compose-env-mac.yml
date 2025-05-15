@@ -220,7 +220,7 @@ services:
 
   #redis容器 - Redis container
   redis:
-    image: redis:latest
+    image: redis:8.0.1
     container_name: redis
     ports:
       - 36379:6379
