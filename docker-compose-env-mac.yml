@@ -1,4 +1,4 @@
-version: "3"
+version: "3.7"
 
 ######## 项目依赖的环境，启动项目之前要先启动此环境 #######
 ######## The environment that the project depends on, starting this environment before starting the project #######
@@ -6,8 +6,9 @@ version: "3"
 services:
   #jaeger链路追踪 — Jaeger for tracing
   jaeger:
-    image: jaegertracing/all-in-one:1.69.0
-    # image: jaegertracing/jaeger:2.6.0
+    # image: jaegertracing/all-in-one:1.63.0
+    # image: jaegertracing/all-in-one:1.69.0
+    image: jaegertracing/jaeger:2.6.0
     container_name: jaeger
     restart: always
     ports:
@@ -69,34 +70,43 @@ services:
     container_name: elasticsearch
     restart: unless-stopped
     environment:
-      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
-      - "TZ=Asia/Shanghai"
-      - "discovery.type=single-node"
-      - "xpack.security.enabled=false"
+      # - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+      # - "TZ=Asia/Shanghai"
+      # - "discovery.type=single-node"
+      # - "xpack.security.enabled=false"
+      ES_JAVA_OPTS: -Xms1024m -Xmx1024m
+      TZ: Asia/Shanghai
+      discovery.type: single-node
+      xpack.security.enabled: false
     ports:
       - "9200:9200"
-      - "9300:9300"
+      - "9300:9300" # 接点通讯使用
     volumes:
       - ./data/es/data:/usr/share/elasticsearch/data
       - ./data/es/plugins:/usr/share/elasticsearch/plugins
     networks:
       - looklook_net
 
+  # 针对 elasticsearch 的工具
   kibana:
     image: kibana:9.0.1
     container_name: kibana
     restart: unless-stopped
     environment:
-      - "TZ=Asia/Shanghai"
-      - "I18N_LOCALE=zh-CN"
-      - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
-      - "XPACK_SECURITY_ENABLED=false"
+      # - "TZ=Asia/Shanghai"
+      # - "I18N_LOCALE=zh-CN"
+      # - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
+      # - "XPACK_SECURITY_ENABLED=false"
+      TZ: Asia/Shanghai
+      I18N_LOCALE: zh-CN
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200 # 连接elasticsearch接口
+      XPACK_SECURITY_ENABLED: false
+    depends_on: # 依赖集群
+      - elasticsearch
     ports:
       - "5601:5601"
     networks:
       - looklook_net
-    depends_on:
-      - elasticsearch
 
   #消费kafka中filebeat收集的数据输出到es - The data output collected by FileBeat in Kafka is output to ES
   go-stash:
@@ -116,7 +126,8 @@ services:
 
   #收集业务数据 - Collect business data
   filebeat:
-    image: elastic/filebeat:8.12.2
+    # image: elastic/filebeat:8.12.2
+    image: elastic/filebeat:9.0.1
     container_name: filebeat
     environment:
       # 时区上海 - Time zone Shanghai (Change if needed)
@@ -130,14 +141,14 @@ services:
       # 如snap安装的docker，则为/var/snap/docker/common/var-lib-docker/containers - Example if docker is installed by Snap /var/snap/docker/common/var-lib-docker/containers
       # - /var/snap/docker/common/var-lib-docker/containers:/var/lib/docker/containers
       - /var/lib/docker/containers:/var/lib/docker/containers
-    networks:
-      - looklook_net
     depends_on:
       - kafka
+    networks:
+      - looklook_net
 
   #消息队列 - Message queue
   kafka:
-    image: apache/kafka:3.9.0
+    image: apache/kafka:4.0.0
     container_name: kafka
     ports:
       - 9092:9092 # 容器内部之间使用的监听端口
@@ -180,7 +191,8 @@ services:
       - redis
 
   mysql:
-    image: mysql:latest
+    # image: mysql:latest
+    image: mysql/mysql-server:8.0.32
     container_name: mysql
     environment:
       # 时区上海 - Time zone Shanghai (Change if needed)

@@ -16,7 +16,7 @@ processors:
 output.kafka:
   enabled: true
   hosts: ["kafka:9092"]
-  #要提前创建topic
+  #要提前创建 topic 需要进入Kafka中创建
   topic: "looklook-log"
   partition.hash:
     reachable_only: true
